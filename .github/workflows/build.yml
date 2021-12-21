@@ -4,108 +4,13 @@ on:
   push:
     branches:
       - '**'
-    paths-ignore:
-      - 'README.md'
-      - 'README-zh_CN.md'
-      - 'ROADMAP-zh_CN.md'
-      - 'LICENSE'
-    tags-ignore:
-      - '**'
-  pull_request:
-    branches:
-      - '**'
-    paths-ignore:
-      - 'README.md'
-      - 'README-zh_CN.md'
-      - 'ROADMAP-zh_CN.md'
-      - 'LICENSE'
-    tags-ignore:
-      - '**'
 
 jobs:
   build_and_test_on_linux:
     name: Build and Test on Linux
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ ubuntu-18.04, ubuntu-20.04 ]
-        compiler:
-          - { cc: gcc, cxx: g++ }
-          - { cc: clang, cxx: clang++ }
-    env:
-      CC: ${{ matrix.compiler.cc }}
-      CXX: ${{ matrix.compiler.cxx }}
+    runs-on: windows-latest
     steps:
       - name: Fetch Codebase
         uses: actions/checkout@v2
-      - name: Cache Antlr4 and Antlr4 Runtime
-        id: cache-antlr
-        uses: actions/cache@v2
-        with:
-          path: ${{ github.workspace }}/thirdparty
-          key: ${{ matrix.os }}-${{ matrix.compiler.cc }}-antlr4.9
-      - name: Install Prerequirements
-        run: |
-          sudo wget https://apt.llvm.org/llvm.sh
-          sudo chmod +x llvm.sh
-          sudo ./llvm.sh
-          sudo apt-get -y install uuid-dev pkg-config doxygen graphviz
-      - name: Install Antlr4 and Antlr4 Runtime
-        if: steps.cache-antlr.outputs.cache-hit != 'true'
-        run: |
-          sudo mkdir -p thirdparty/antlr && cd thirdparty/antlr
-          sudo wget https://www.antlr.org/download/antlr-4.9.2-complete.jar
-          sudo wget -O ${{ runner.temp }}/antlr4-src.zip https://www.antlr.org/download/antlr4-cpp-runtime-4.9.2-source.zip
-          cd ${{ runner.temp }}
-          sudo unzip antlr4-src.zip
-          sudo mkdir build && cd build
-          sudo mkdir -p ${{ github.workspace }}/thirdparty/antlr-runtime
-          sudo cmake .. -DANTLR4_INSTALL=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-w" -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/thirdparty/antlr-runtime
-          sudo cmake --build . --target install  -- -j 2
-      - name: Move Antlr Runtime into /usr/local
-        run: |
-          cd ${{ github.workspace }}/thirdparty/antlr-runtime
-          sudo cp -r include/* /usr/local/include/
-          sudo cp -r lib/* /usr/local/lib/
-      - name: CMake Build
-        run: |
-          echo "THREAD_COUNT=$(sudo cat /proc/cpuinfo| grep "processor"| wc -l)" >> $GITHUB_ENV
-          sudo mkdir cmake-build-debug cmake-build-release
-          cd cmake-build-debug
-          sudo cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-w" -G "Unix Makefiles" ..
-          sudo cmake --build . --target staticscript document -- -j $THREAD_COUNT
-          sudo ctest --extra-verbose
-          cd ../cmake-build-release
-          sudo cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-w" -G "Unix Makefiles" ..
-          sudo cmake --build . --target staticscript document -- -j $THREAD_COUNT
-          sudo ctest --extra-verbose
-
-  build_and_test_on_macos:
-    name: Build and Test on macOS
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ macos-10.15 ]
-        compiler:
-          - { cc: gcc, cxx: g++ }
-          - { cc: clang, cxx: clang++ }
-    env:
-      CC: ${{ matrix.compiler.cc }}
-      CXX: ${{ matrix.compiler.cxx }}
-    steps:
-      - name: Install Prerequirements
-        run: brew install antlr antlr4-cpp-runtime doxygen graphviz
-      - name: Fetch Codebase
-        uses: actions/checkout@v2
-      - name: CMake Build
-        run: |
-          echo "THREAD_COUNT=$(sudo sysctl -n machdep.cpu.thread_count)" >> $GITHUB_ENV
-          sudo mkdir cmake-build-debug cmake-build-release
-          cd cmake-build-debug
-          sudo cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-w" -G "Unix Makefiles" ..
-          sudo cmake --build . --target staticscript document -- -j $THREAD_COUNT
-          sudo ctest --extra-verbose
-          cd ../cmake-build-release
-          sudo cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-w" -G "Unix Makefiles" ..
-          sudo cmake --build . --target staticscript document -- -j $THREAD_COUNT
-          sudo ctest --extra-verbose
+      - name: Setup Debug Session
+        uses: csexton/debugger-action@master
