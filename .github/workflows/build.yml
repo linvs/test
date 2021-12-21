@@ -8,7 +8,7 @@ on:
 jobs:
   build_and_test_on_linux:
     name: Build and Test on Linux
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Fetch Codebase
         uses: actions/checkout@v2
